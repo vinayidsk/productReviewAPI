@@ -180,6 +180,92 @@ namespace ProductReviewAPI.Controllers
             }
         }
 
+        [HttpPost]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> CompareProducts([FromBody] List<int> productIds)
+        {
+            try
+            {
+                if (productIds == null || productIds.Count == 0)
+                {
+                    return BadRequest("Product IDs are required.");
+                }
+
+                Expression<Func<Product, object>>[] includes = {
+                    p => p.Images,
+                    p => p.Reviews,
+                    p => p.SellerProducts,
+                    p => p.Category
+                };
+
+                // Retrieve the products based on the provided IDs
+                var products = await _productRepository.GetAllAsync(
+                    p => productIds.Contains(p.ProductId),
+                    includes);
+
+                // Check if all products have the same CategoryId
+                int categoryId = products.FirstOrDefault()?.CategoryId ?? -1;
+                if (products.Any(p => p.CategoryId != categoryId))
+                {
+                    return BadRequest("All products must have the same CategoryId.");
+                }
+
+                var productDTOs = new List<ProductDtoWithAvgRating>();
+
+                foreach (var product in products)
+                {
+                    var productDTO = new ProductDtoWithAvgRating
+                    {
+                        ProductId = product.ProductId,
+                        Name = product.Name,
+                        Description = product.Description,
+                        CategoryId = product.CategoryId,
+                        AverageRating = CalculateAverageRating(product.Reviews)
+                    };
+
+                    productDTO.Category = new CategoryDto
+                    {
+                        CategoryId = product.Category.CategoryId,
+                        Name = product.Category.Name
+                    };
+
+                    productDTO.SellerProducts = product.SellerProducts
+                        .OrderBy(sellerProduct => sellerProduct.Price)
+                        .Select(sellerProduct => new SellerProductDTO
+                        {
+                            SellerProductId = sellerProduct.SellerProductId,
+                            SellerId = sellerProduct.SellerId,
+                            ProductId = sellerProduct.ProductId,
+                            Price = sellerProduct.Price
+                        })
+                        .ToList();
+
+                    productDTO.Reviews = product.Reviews.Select(review => new ReviewDto
+                    {
+                        ReviewId = review.ReviewId,
+                        Rating = review.Rating,
+                        Comment = review.Comment,
+                        UserId = review.UserId
+                    }).ToList();
+
+                    productDTO.Images = product.Images.Select(image => new ProductImageDto
+                    {
+                        ImageId = image.ImageId,
+                        Url = image.Url
+                    }).ToList();
+
+                    productDTOs.Add(productDTO);
+                }
+
+                return Ok(productDTOs);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error retrieving products by IDs: {ex}");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
         [HttpGet("category/{categoryId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<ActionResult<IEnumerable<ProductDtoWithAvgRating>>> GetProductsByCategory(int categoryId)
