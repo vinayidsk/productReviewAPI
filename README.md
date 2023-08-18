@@ -25,8 +25,8 @@ The Product Review API is a RESTful web service designed to manage and retrieve 
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/your-username/product-review-api.git
-   cd product-review-api
+   git clone https://github.com/vinayidsk/productReviewAPI.git
+   cd productReviewAPI
 
 2. Update the database connection string in appsettings.json to point to your SQL Server database.
 3. Project has EF Migration so run migration
