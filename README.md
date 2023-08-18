@@ -4,11 +4,15 @@ The Product Review API is a RESTful web service designed to manage and retrieve 
 
 ## Features
 
-- Retrieve a list of products along with their details, prices, categories, images, and reviews.
-- Get product details by ID, including associated data.
-- Add, update, and delete products.
-- Manage reviews for products, including adding, updating, and deleting reviews.
 - Secure endpoints using JWT-based authentication.
+- Users can retrieve a list of products along with their details, prices, categories, images, reviews, and overall ratings.
+- Users can get product details by ID, including associated data.
+- Users can compare products of the same categories with their details, prices, categories, images, reviews, and overall ratings.
+- Users can add a single review per product.
+- Admin can Add, update, and delete products.
+- Admin can Add, and update products associated images.
+- Admin can Add, update, and delete sellers and associated prices of products.
+- Admin Manage reviews for products, including adding, updating, and deleting reviews.
 - Error handling for better user experience.
 
 ## Prerequisites
