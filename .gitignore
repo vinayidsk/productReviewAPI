@@ -396,3 +396,4 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/.vs/FinalProject/v17/TestStore/0/testlog.manifest
