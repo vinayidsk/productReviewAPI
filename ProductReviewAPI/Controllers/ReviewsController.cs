@@ -43,80 +43,28 @@ namespace ProductReviewAPI.Controllers
             return Ok(review);
         }
 
-        [HttpGet("product/{productId}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetReviewsForProduct(int productId)
-        {
-            var reviewsForProduct = await _reviewRepository.GetAllAsync(r => r.ProductId == productId);
-            return Ok(reviewsForProduct);
-        }
+        //[HttpGet("product/{productId}")]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        //public async Task<IActionResult> GetReviewsForProduct(int productId)
+        //{
+        //    var reviewsForProduct = await _reviewRepository.GetAllAsync(r => r.ProductId == productId);
+        //    return Ok(reviewsForProduct);
+        //}
 
-        [HttpGet("product/{productId}/average-rating")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetAverageRatingForProduct(int productId)
-        {
-            var reviewsForProduct = await _reviewRepository.GetAllAsync(r => r.ProductId == productId);
+        //[HttpGet("product/{productId}/average-rating")]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        //public async Task<IActionResult> GetAverageRatingForProduct(int productId)
+        //{
+        //    var reviewsForProduct = await _reviewRepository.GetAllAsync(r => r.ProductId == productId);
 
-            if (!reviewsForProduct.Any())
-            {
-                return NotFound();
-            }
+        //    if (!reviewsForProduct.Any())
+        //    {
+        //        return NotFound();
+        //    }
 
-            var averageRating = reviewsForProduct.Average(r => r.Rating);
-            return Ok(averageRating);
-        }
-
-        [HttpPost("{productId}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<ActionResult<ReviewDto>> CreateReview(int productId, ReviewCreateDTO reviewDto)
-        {
-            try
-            {
-                // Get the current user's ID
-                int userId = int.Parse(User.FindFirst("Id").Value);
-
-                // Check if the user has already reviewed this product
-                var existingReview = await _reviewRepository.GetAllAsync(
-                    r => r.ProductId == productId && r.UserId == userId);
-
-                if (existingReview.Any())
-                {
-                    return BadRequest("You have already reviewed this product.");
-                }
-
-                // Map the review DTO to the review model
-                var review = new Review
-                {
-                    UserId = userId,
-                    ProductId = productId,
-                    Rating = reviewDto.Rating,
-                    Comment = reviewDto.Comment
-                };
-
-                // Add the review to the database
-                await _reviewRepository.AddAsync(review);
-
-                // Map the added review back to DTO
-                var addedReviewDto = new ReviewDto
-                {
-                    ReviewId = review.ReviewId,
-                    UserId = review.UserId,
-                    ProductId = review.ProductId,
-                    Rating = review.Rating,
-                    Comment = review.Comment
-                };
-
-                var routeValues = new { ReviewId = addedReviewDto.ReviewId };
-
-                return CreatedAtAction(nameof(GetReviewById), routeValues, addedReviewDto);
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error adding review: {ex}");
-                return StatusCode(500, "An error occurred while processing your request.");
-            }
-        }
+        //    var averageRating = reviewsForProduct.Average(r => r.Rating);
+        //    return Ok(averageRating);
+        //}
 
         [HttpPut("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]

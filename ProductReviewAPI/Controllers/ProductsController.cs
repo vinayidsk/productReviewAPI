@@ -189,6 +189,9 @@ namespace ProductReviewAPI.Controllers
                 if (productIds == null || productIds.Count == 0)
                 {
                     return BadRequest("Product IDs are required.");
+                } else if (productIds.Count < 2)
+                {
+                    return BadRequest("Minimum two product IDs are required for compare.");
                 }
 
                 Expression<Func<Product, object>>[] includes = {
@@ -202,6 +205,11 @@ namespace ProductReviewAPI.Controllers
                 var products = await _productRepository.GetAllAsync(
                     p => productIds.Contains(p.ProductId),
                     includes);
+
+                if (productIds.Count != products.Count())
+                {
+                    return BadRequest("One or more product/s are not found.");
+                }
 
                 // Check if all products have the same CategoryId
                 int categoryId = products.FirstOrDefault()?.CategoryId ?? -1;
@@ -364,11 +372,11 @@ namespace ProductReviewAPI.Controllers
             }
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{productId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
-        public async Task<IActionResult> UpdateProduct(int id, Product product)
+        public async Task<IActionResult> UpdateProduct(int productId, Product product)
         {
-            if (id != product.ProductId)
+            if (productId != product.ProductId)
             {
                 return BadRequest();
             }
@@ -377,7 +385,7 @@ namespace ProductReviewAPI.Controllers
             return NoContent();
         }
 
-        [HttpPut("{productId}/images")]
+        [HttpPut("{productId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
         public async Task<ActionResult<ProductDto>> UpdateProductImages(int productId, List<ProductImageDto> images)
         {
@@ -423,7 +431,7 @@ namespace ProductReviewAPI.Controllers
             }
         }
 
-        [HttpPut("{productId}/seller")]
+        [HttpPut("{productId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
         public async Task<ActionResult<ProductUpdateDTO>> AssignSellerToProduct(int productId, SellerProductDTO sellerProductDto)
         {
@@ -470,12 +478,81 @@ namespace ProductReviewAPI.Controllers
             }
         }
 
-        //TODO:  Instead of Delete from db add isDeleted flag and change it to true
-        [HttpDelete("{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
-        public async Task<IActionResult> DeleteProduct(int id)
+        [HttpPut("{productId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult<ReviewDto>> AddReview(int productId, ReviewCreateDTO reviewDto)
         {
-            var product = await _productRepository.GetByIdAsync(id);
+            try
+            {
+                // Get the current user's ID
+                int userId = int.Parse(User.FindFirst("Id").Value);
+
+                Expression<Func<Product, object>>[] includes = {
+                    p => p.Images,
+                    p => p.Reviews,
+                    p => p.SellerProducts,
+                    p => p.Category
+                };
+                // Load product with related data using Include
+                var product = await _productRepository.GetByIdAsync(productId, includes);
+
+                if (product == null)
+                {
+                    return NotFound($"Product with ID {productId} not found.");
+                }
+
+
+                // Initialize the SellerProducts collection if it's null
+                if (product.Reviews == null)
+                {
+                    product.Reviews = new List<Review>();
+                }
+
+                // Check if the user has already reviewed this product
+                var existingReview = product.Reviews.Where(r => r.UserId == userId).ToList();
+
+                if (existingReview.Any())
+                {
+                    return BadRequest("You have already reviewed this product.");
+                }
+
+                // Map the review to the review model
+                var review = new Review
+                {
+                    UserId = userId,
+                    ProductId = productId,
+                    Rating = reviewDto.Rating,
+                    Comment = reviewDto.Comment
+                };
+
+                product.Reviews.Add(review);
+
+                await _productRepository.UpdateAsync(product);
+
+                var productUpdateDto = new ProductUpdateDTO
+                {
+                    Name = product.Name,
+                    Description = product.Description,
+                    CategoryId = product.CategoryId
+                };
+
+                return Ok(productUpdateDto);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error adding review: {ex}");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
+        }
+
+
+        //TODO:  Instead of Delete from db add isDeleted flag and change it to true
+        [HttpDelete("{productId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
+        public async Task<IActionResult> DeleteProduct(int productId)
+        {
+            var product = await _productRepository.GetByIdAsync(productId);
             if (product == null)
             {
                 return NotFound();
