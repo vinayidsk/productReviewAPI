@@ -30,15 +30,15 @@ namespace ProductReviewAPI.Controllers
             return Ok(categories);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{categoryId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetCategoryById(int id)
+        public async Task<IActionResult> GetCategoryById(int categoryId)
         {
-            _logger.LogInformation($"Getting category for {id}");
-            var category = await _categoryRepository.GetByIdAsync(id);
+            _logger.LogInformation($"Getting category for {categoryId}");
+            var category = await _categoryRepository.GetByIdAsync(categoryId);
             if (category == null)
             {
-                _logger.LogWarning($"Category not found for {id}");
+                _logger.LogWarning($"Category not found for {categoryId}");
                 return NotFound();
             }
             return Ok(category);
@@ -49,16 +49,16 @@ namespace ProductReviewAPI.Controllers
         public async Task<IActionResult> AddCategory(Category category)
         {
             await _categoryRepository.AddAsync(category);
-            return CreatedAtAction(nameof(GetCategoryById), new { id = category.CategoryId }, category);
+            return CreatedAtAction(nameof(GetCategoryById), new { categoryId = category.CategoryId }, category);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{categoryId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
-        public async Task<IActionResult> UpdateCategory(int id, Category category)
+        public async Task<IActionResult> UpdateCategory(int categoryId, Category category)
         {
-            if (id != category.CategoryId)
+            if (categoryId != category.CategoryId)
             {
-                _logger.LogWarning($"Category ID: {id} not match with CategoryId {category.CategoryId}");
+                _logger.LogWarning($"Category ID: {categoryId} not match with CategoryId {category.CategoryId}");
                 return BadRequest();
             }
 
@@ -67,19 +67,19 @@ namespace ProductReviewAPI.Controllers
         }
 
         //TODO: Instead of Delete from db add isDeleted flag and change it to true
-        [HttpDelete("{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
-        public async Task<IActionResult> DeleteCategory(int id)
-        {
-            var category = await _categoryRepository.GetByIdAsync(id);
-            if (category == null)
-            {
-                _logger.LogWarning($"Category not found for {id}");
-                return NotFound();
-            }
+        //[HttpDelete("{id}")]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
+        //public async Task<IActionResult> DeleteCategory(int id)
+        //{
+        //    var category = await _categoryRepository.GetByIdAsync(id);
+        //    if (category == null)
+        //    {
+        //        _logger.LogWarning($"Category not found for {id}");
+        //        return NotFound();
+        //    }
 
-            await _categoryRepository.DeleteAsync(category);
-            return NoContent();
-        }
+        //    await _categoryRepository.DeleteAsync(category);
+        //    return NoContent();
+        //}
     }
 }

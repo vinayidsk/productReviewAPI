@@ -13,7 +13,6 @@ namespace ProductReviewAPI.Dtos
     {
         public int SellerProductId { get; set; }
         public int SellerId { get; set; }
-        public int ProductId { get; set; }
         public decimal Price { get; set; }
     }
 }

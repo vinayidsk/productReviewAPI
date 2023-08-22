@@ -49,7 +49,8 @@ namespace ProductReviewAPI.Repositories
 
         public async Task DeleteAsync(Review review)
         {
-            _context.Reviews.Remove(review);
+            review.IsDeleted = true;
+            _context.Reviews.Update(review);
             await _context.SaveChangesAsync();
         }
     }

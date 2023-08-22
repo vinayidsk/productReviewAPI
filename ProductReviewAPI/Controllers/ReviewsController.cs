@@ -22,58 +22,33 @@ namespace ProductReviewAPI.Controllers
         }
 
         [HttpGet]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
         public async Task<IActionResult> GetAllReviews()
         {
             var reviews = await _reviewRepository.GetAllAsync();
             return Ok(reviews);
         }
 
-        [HttpGet("{ReviewId}", Name = "GetReviewById")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [HttpGet("{reviewId}", Name = "GetReviewById")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetReviewById(int ReviewId)
+        public async Task<IActionResult> GetReviewById(int reviewId)
         {
-            var review = await _reviewRepository.GetByIdAsync(ReviewId);
-            if (review == null)
+            var review = await _reviewRepository.GetByIdAsync(reviewId);
+            if (review == null || review?.IsDeleted == true)
             {
-                return NotFound();
+                return NotFound("Review not found or deleted");
             }
             return Ok(review);
         }
 
-        //[HttpGet("product/{productId}")]
-        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        //public async Task<IActionResult> GetReviewsForProduct(int productId)
-        //{
-        //    var reviewsForProduct = await _reviewRepository.GetAllAsync(r => r.ProductId == productId);
-        //    return Ok(reviewsForProduct);
-        //}
-
-        //[HttpGet("product/{productId}/average-rating")]
-        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        //public async Task<IActionResult> GetAverageRatingForProduct(int productId)
-        //{
-        //    var reviewsForProduct = await _reviewRepository.GetAllAsync(r => r.ProductId == productId);
-
-        //    if (!reviewsForProduct.Any())
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    var averageRating = reviewsForProduct.Average(r => r.Rating);
-        //    return Ok(averageRating);
-        //}
-
-        [HttpPut("{id}")]
+        [HttpPut("{reviewId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
-        public async Task<IActionResult> UpdateReview(int id, Review updatedReview)
+        public async Task<IActionResult> UpdateReview(int reviewId, Review updatedReview)
         {
-            var existingReview = await _reviewRepository.GetByIdAsync(id);
-            if (existingReview == null)
+            var existingReview = await _reviewRepository.GetByIdAsync(reviewId);
+            if (existingReview == null || existingReview?.IsDeleted == true)
             {
-                return NotFound();
+                return NotFound("Review not found or deleted");
             }
 
             existingReview.Rating = updatedReview.Rating;
@@ -87,14 +62,14 @@ namespace ProductReviewAPI.Controllers
         }
 
         //TODO:  Instead of Delete from db add isDeleted flag and change it to true
-        [HttpDelete("{id}")]
+        [HttpDelete("{reviewId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
-        public async Task<IActionResult> DeleteReview(int id)
+        public async Task<IActionResult> DeleteReview(int reviewId)
         {
-            var existingReview = await _reviewRepository.GetByIdAsync(id);
-            if (existingReview == null)
+            var existingReview = await _reviewRepository.GetByIdAsync(reviewId);
+            if (existingReview == null || existingReview?.IsDeleted == true)
             {
-                return NotFound();
+                return NotFound("Review not found or deleted");
             }
 
             await _reviewRepository.DeleteAsync(existingReview);

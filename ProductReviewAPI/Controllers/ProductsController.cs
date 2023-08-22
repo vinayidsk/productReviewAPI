@@ -40,7 +40,7 @@ namespace ProductReviewAPI.Controllers
             {
                 Expression<Func<Product, object>>[] includes = {
                     p => p.Images,
-                    p => p.Reviews,
+                    p => p.Reviews.Where(r => ! r.IsDeleted),
                     p => p.SellerProducts,
                     p => p.Category
                 };
@@ -75,7 +75,6 @@ namespace ProductReviewAPI.Controllers
                     {
                         SellerProductId = sellerProduct.SellerProductId,
                         SellerId = sellerProduct.SellerId,
-                        ProductId = sellerProduct.ProductId,
                         Price = sellerProduct.Price
                     })
                     .ToList();
@@ -117,7 +116,7 @@ namespace ProductReviewAPI.Controllers
             {
                 Expression<Func<Product, object>>[] includes = {
                     p => p.Images,
-                    p => p.Reviews,
+                    p => p.Reviews.Where(r => ! r.IsDeleted),
                     p => p.SellerProducts,
                     p => p.Category
                 };
@@ -151,7 +150,6 @@ namespace ProductReviewAPI.Controllers
             {
                 SellerProductId = sellerProduct.SellerProductId,
                 SellerId = sellerProduct.SellerId,
-                ProductId = sellerProduct.ProductId,
                 Price = sellerProduct.Price
             }).ToList();
 
@@ -196,15 +194,15 @@ namespace ProductReviewAPI.Controllers
 
                 Expression<Func<Product, object>>[] includes = {
                     p => p.Images,
-                    p => p.Reviews,
+                    p => p.Reviews.Where(r => !r.IsDeleted),
                     p => p.SellerProducts,
                     p => p.Category
                 };
 
                 // Retrieve the products based on the provided IDs
                 var products = await _productRepository.GetAllAsync(
-                    p => productIds.Contains(p.ProductId),
-                    includes);
+                        p => productIds.Contains(p.ProductId), includes
+                    );
 
                 if (productIds.Count != products.Count())
                 {
@@ -243,7 +241,6 @@ namespace ProductReviewAPI.Controllers
                         {
                             SellerProductId = sellerProduct.SellerProductId,
                             SellerId = sellerProduct.SellerId,
-                            ProductId = sellerProduct.ProductId,
                             Price = sellerProduct.Price
                         })
                         .ToList();
@@ -283,7 +280,7 @@ namespace ProductReviewAPI.Controllers
                 var products = await _productRepository.GetAllAsync(
                     p => p.CategoryId == categoryId,
                     p => p.Images,
-                    p => p.Reviews,
+                    p => p.Reviews.Where(r => !r.IsDeleted),
                     p => p.SellerProducts,
                     p => p.Category);
 
@@ -321,7 +318,6 @@ namespace ProductReviewAPI.Controllers
                             {
                                 SellerProductId = sellerProduct.SellerProductId,
                                 SellerId = sellerProduct.SellerId,
-                                ProductId = sellerProduct.ProductId,
                                 Price = sellerProduct.Price
                             }).ToList()
                     };
@@ -414,15 +410,7 @@ namespace ProductReviewAPI.Controllers
 
                 await _productRepository.UpdateAsync(product);
 
-                var productDto = new ProductDto
-                {
-                    ProductId = product.ProductId,
-                    Name = product.Name,
-                    Description = product.Description,
-                    CategoryId = product.CategoryId
-                };
-
-                return Ok(productDto);
+                return Ok();
             }
             catch (Exception ex)
             {
@@ -462,14 +450,7 @@ namespace ProductReviewAPI.Controllers
 
                 await _productRepository.UpdateAsync(product);
 
-                var productUpdateDto = new ProductUpdateDTO
-                {
-                    Name = product.Name,
-                    Description = product.Description,
-                    CategoryId = product.CategoryId
-                };
-
-                return Ok(productUpdateDto);
+                return Ok();
             }
             catch (Exception ex)
             {
@@ -509,7 +490,7 @@ namespace ProductReviewAPI.Controllers
                 }
 
                 // Check if the user has already reviewed this product
-                var existingReview = product.Reviews.Where(r => r.UserId == userId).ToList();
+                var existingReview = product.Reviews.Where(r => (r.UserId == userId && r.IsDeleted == false) ).ToList();
 
                 if (existingReview.Any())
                 {
@@ -529,14 +510,7 @@ namespace ProductReviewAPI.Controllers
 
                 await _productRepository.UpdateAsync(product);
 
-                var productUpdateDto = new ProductUpdateDTO
-                {
-                    Name = product.Name,
-                    Description = product.Description,
-                    CategoryId = product.CategoryId
-                };
-
-                return Ok(productUpdateDto);
+                return Ok();
 
             }
             catch (Exception ex)
@@ -548,19 +522,19 @@ namespace ProductReviewAPI.Controllers
 
 
         //TODO:  Instead of Delete from db add isDeleted flag and change it to true
-        [HttpDelete("{productId}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
-        public async Task<IActionResult> DeleteProduct(int productId)
-        {
-            var product = await _productRepository.GetByIdAsync(productId);
-            if (product == null)
-            {
-                return NotFound();
-            }
+        //[HttpDelete("{productId}")]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
+        //public async Task<IActionResult> DeleteProduct(int productId)
+        //{
+        //    var product = await _productRepository.GetByIdAsync(productId);
+        //    if (product == null)
+        //    {
+        //        return NotFound();
+        //    }
 
-            await _productRepository.DeleteAsync(product);
-            return NoContent();
-        }
+        //    await _productRepository.DeleteAsync(product);
+        //    return NoContent();
+        //}
 
     }
 }

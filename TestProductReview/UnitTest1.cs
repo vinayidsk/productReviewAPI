@@ -252,57 +252,57 @@ namespace TestProductReview
             Assert.Equal(allReviews.Count, returnedReviews.Count);
         }
 
-        [Fact]
-        public async Task GetReviewsForProduct_ReturnsReviewsForProduct()
-        {
-            // Arrange
-            var mockRepo = new Mock<IDataRepository<Review>>();
-            var mockLogger = new Mock<ILogger<ReviewsController>>();
-            var productId = 123;
+        //[Fact]
+        //public async Task GetReviewsForProduct_ReturnsReviewsForProduct()
+        //{
+        //    // Arrange
+        //    var mockRepo = new Mock<IDataRepository<Review>>();
+        //    var mockLogger = new Mock<ILogger<ReviewsController>>();
+        //    var productId = 123;
 
-            var reviewsForProduct = TestData.GetTestReviews()
-                .Where(r => r.ProductId == productId)
-                .ToList();
+        //    var reviewsForProduct = TestData.GetTestReviews()
+        //        .Where(r => r.ProductId == productId)
+        //        .ToList();
 
-            mockRepo.Setup(repo => repo.GetAllAsync(r => r.ProductId == productId))
-                .ReturnsAsync(reviewsForProduct);
+        //    mockRepo.Setup(repo => repo.GetAllAsync(r => r.ProductId == productId))
+        //        .ReturnsAsync(reviewsForProduct);
 
-            var controller = new ReviewsController(mockRepo.Object, mockLogger.Object);
+        //    var controller = new ReviewsController(mockRepo.Object, mockLogger.Object);
 
-            // Act
-            var result = await controller.GetReviewsForProduct(productId);
+        //    // Act
+        //    var result = await controller.GetReviewsForProduct(productId);
 
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var returnedReviews = Assert.IsType<List<Review>>(okResult.Value);
-            Assert.Equal(reviewsForProduct.Count, returnedReviews.Count);
-        }
+        //    // Assert
+        //    var okResult = Assert.IsType<OkObjectResult>(result);
+        //    var returnedReviews = Assert.IsType<List<Review>>(okResult.Value);
+        //    Assert.Equal(reviewsForProduct.Count, returnedReviews.Count);
+        //}
 
-        [Fact]
-        public async Task GetAverageRatingForProduct_ReturnsAverageRating()
-        {
-            // Arrange
-            var mockRepo = new Mock<IDataRepository<Review>>();
-            var mockLogger = new Mock<ILogger<ReviewsController>>();
-            var productId = 123;
+        //[Fact]
+        //public async Task GetAverageRatingForProduct_ReturnsAverageRating()
+        //{
+        //    // Arrange
+        //    var mockRepo = new Mock<IDataRepository<Review>>();
+        //    var mockLogger = new Mock<ILogger<ReviewsController>>();
+        //    var productId = 123;
 
-            var reviewsForProduct = TestData.GetTestReviews()
-                .Where(r => r.ProductId == productId)
-                .ToList();
+        //    var reviewsForProduct = TestData.GetTestReviews()
+        //        .Where(r => r.ProductId == productId)
+        //        .ToList();
 
-            mockRepo.Setup(repo => repo.GetAllAsync(r => r.ProductId == productId))
-                .ReturnsAsync(reviewsForProduct);
+        //    mockRepo.Setup(repo => repo.GetAllAsync(r => r.ProductId == productId))
+        //        .ReturnsAsync(reviewsForProduct);
 
-            var controller = new ReviewsController(mockRepo.Object, mockLogger.Object);
+        //    var controller = new ReviewsController(mockRepo.Object, mockLogger.Object);
 
-            // Act
-            var result = await controller.GetAverageRatingForProduct(productId);
+        //    // Act
+        //    var result = await controller.GetAverageRatingForProduct(productId);
 
-            // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var averageRating = Assert.IsType<double>(okResult.Value);
-            Assert.Equal(reviewsForProduct.Average(r => r.Rating), averageRating);
-        }
+        //    // Assert
+        //    var okResult = Assert.IsType<OkObjectResult>(result);
+        //    var averageRating = Assert.IsType<double>(okResult.Value);
+        //    Assert.Equal(reviewsForProduct.Average(r => r.Rating), averageRating);
+        //}
 
         // TODO: Needs to add Other test methods for ReviewsController
     }

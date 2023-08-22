@@ -27,11 +27,11 @@ namespace ProductReviewAPI.Controllers
             return Ok(sellers);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{sellerId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetSellerById(int id)
+        public async Task<IActionResult> GetSellerById(int sellerId)
         {
-            var seller = await _sellerRepository.GetByIdAsync(id);
+            var seller = await _sellerRepository.GetByIdAsync(sellerId);
             if (seller == null)
             {
                 return NotFound();
@@ -50,14 +50,14 @@ namespace ProductReviewAPI.Controllers
 
             await _sellerRepository.AddAsync(seller);
 
-            return CreatedAtAction(nameof(GetSellerById), new { id = seller.SellerId }, seller);
+            return CreatedAtAction(nameof(GetSellerById), new { sellerId = seller.SellerId }, seller);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{sellerId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
-        public async Task<IActionResult> UpdateSeller(int id, Seller updatedSeller)
+        public async Task<IActionResult> UpdateSeller(int sellerId, Seller updatedSeller)
         {
-            var existingSeller = await _sellerRepository.GetByIdAsync(id);
+            var existingSeller = await _sellerRepository.GetByIdAsync(sellerId);
             if (existingSeller == null)
             {
                 return NotFound();
@@ -71,19 +71,19 @@ namespace ProductReviewAPI.Controllers
         }
 
         //TODO:  Instead of Delete from db add isDeleted flag and change it to true
-        [HttpDelete("{id}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
-        public async Task<IActionResult> DeleteSeller(int id)
-        {
-            var existingSeller = await _sellerRepository.GetByIdAsync(id);
-            if (existingSeller == null)
-            {
-                return NotFound();
-            }
+        //[HttpDelete("{id}")]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
+        //public async Task<IActionResult> DeleteSeller(int id)
+        //{
+        //    var existingSeller = await _sellerRepository.GetByIdAsync(id);
+        //    if (existingSeller == null)
+        //    {
+        //        return NotFound();
+        //    }
 
-            await _sellerRepository.DeleteAsync(existingSeller);
+        //    await _sellerRepository.DeleteAsync(existingSeller);
 
-            return NoContent();
-        }
+        //    return NoContent();
+        //}
     }
 }
