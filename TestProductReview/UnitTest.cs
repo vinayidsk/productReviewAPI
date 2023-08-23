@@ -493,30 +493,119 @@ namespace TestProductReview
         public async Task GetAllProducts_ReturnsOkResultWithProducts()
         {
             // Arrange
-            var mockRepo = new Mock<IDataRepository<Product>>();
+            var mockProductRepository = new Mock<IDataRepository<Product>>();
             var mockLogger = new Mock<ILogger<ProductsController>>();
 
-            var products = TestData.GetTestProductsList(); ;
+            var products = TestData.GetTestProductsList();
 
-            mockRepo.Setup(repo => repo.GetAllAsync(null, It.IsAny<Expression<Func<Product, object>>>()))
-                    .ReturnsAsync(products);
+            var productDTOs = products.Select(p => new ProductDtoWithAvgRating
+            {
+                ProductId = p.ProductId,
+                Name = p.Name,
+                Description = p.Description,
+                CategoryId = p.CategoryId,
+                AverageRating = p.Reviews.Any() ? p.Reviews.Average(r => r.Rating) : 0
+            }).ToList();
 
-            var controller = new ProductsController(mockRepo.Object, mockLogger.Object);
+            mockProductRepository.Setup(repo => repo.GetAllAsync(
+                It.IsAny<Expression<Func<Product, bool>>>(),
+                It.IsAny<Expression<Func<Product, object>>[]>()))
+                .ReturnsAsync(products);
+
+            var controller = new ProductsController(mockProductRepository.Object, mockLogger.Object);
 
             // Act
             var result = await controller.GetAllProducts();
 
             // Assert
-            var okResult = Assert.IsType<OkObjectResult>(result);
-            var productDTOs = Assert.IsAssignableFrom<IEnumerable<ProductDtoWithAvgRating>>(okResult.Value);
-            Assert.Equal(200, okResult.StatusCode);
+            Assert.IsType<OkObjectResult>(result);
+            var okResult = result as OkObjectResult;
+            Assert.IsAssignableFrom<List<ProductDtoWithAvgRating>>(okResult.Value);
+            var returnedProductDTOs = okResult.Value as List<ProductDtoWithAvgRating>;
 
-            // TODO: Needs to improve Test Data so that we can check more accuratly
-            // Assert the number of products returned
-            //Assert.Equal(products.Count(), productDTOs.Count());
+            Assert.Equal(productDTOs.Count, returnedProductDTOs.Count);
+
+            mockProductRepository.Verify(repo => repo.GetAllAsync(
+                It.IsAny<Expression<Func<Product, bool>>>(),
+                It.IsAny<Expression<Func<Product, object>>[]>()), Times.Once);
         }
 
-        // TODO: Needs to add Other test methods for ProductsController
+        [Fact]
+        public async Task GetProductById_ReturnsProductDtoWithAvgRating()
+        {
+            var productId = 1;
+            var mockProductRepository = new Mock<IDataRepository<Product>>();
+            var mockLogger = new Mock<ILogger<ProductsController>>();
+
+            var product = TestData.GetTestProductsList().Where(p => p.ProductId == productId).FirstOrDefault();
+
+            mockProductRepository.Setup(repo => repo.GetByIdAsync(
+                productId,
+                It.IsAny<Expression<Func<Product, object>>[]>()))
+                .ReturnsAsync(product);
+
+            var controller = new ProductsController(mockProductRepository.Object, mockLogger.Object);
+
+            var result = await controller.GetProductById(productId);
+
+            var okResult = Assert.IsAssignableFrom<ActionResult<ProductDtoWithAvgRating>>(result);
+            var productDto = Assert.IsType<OkObjectResult>(okResult.Result);
+            Assert.IsType<ProductDtoWithAvgRating>(productDto.Value);
+
+            var productDtoValue = (ProductDtoWithAvgRating)productDto.Value;
+            Assert.Equal(productId, productDtoValue.ProductId);
+        }
+
+        [Fact]
+        public async Task CompareProducts_ReturnsListOfProductDtoWithAvgRating()
+        {
+            var productIds = new List<int> { 1, 2 };
+            var mockProductRepository = new Mock<IDataRepository<Product>>();
+            var mockLogger = new Mock<ILogger<ProductsController>>();
+
+            // Create sample products for comparison
+            var products = TestData.GetTestProductsList().Where( p => p.CategoryId == 1 ).ToList();
+
+            mockProductRepository.Setup(repo => repo.GetAllAsync(
+                It.IsAny<Expression<Func<Product, bool>>>(),
+                It.IsAny<Expression<Func<Product, object>>[]>()))
+                .ReturnsAsync(products);
+
+            var controller = new ProductsController(mockProductRepository.Object, mockLogger.Object);
+
+            var result = await controller.CompareProducts(productIds);
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var productDtoList = Assert.IsAssignableFrom<IEnumerable<ProductDtoWithAvgRating>>(okResult.Value);
+
+            Assert.Equal(2, productDtoList.Count());
+       }
+
+        [Fact]
+        public async Task GetProductsByCategory_ReturnsListOfProductDtoWithAvgRating()
+        {
+            int categoryId = 1;
+            var mockProductRepository = new Mock<IDataRepository<Product>>();
+            var mockLogger = new Mock<ILogger<ProductsController>>();
+
+            var products = TestData.GetTestProductsList().Where(p => p.CategoryId == categoryId).ToList();
+
+            mockProductRepository.Setup(repo => repo.GetAllAsync(
+                It.IsAny<Expression<Func<Product, bool>>>(),
+                It.IsAny<Expression<Func<Product, object>>[]>()))
+                .ReturnsAsync(products);
+
+            var controller = new ProductsController(mockProductRepository.Object, mockLogger.Object);
+
+            var result = await controller.GetProductsByCategory(categoryId);
+
+            var okResult = Assert.IsType<ActionResult<IEnumerable<ProductDtoWithAvgRating>>>(result);
+            var productDTOs = Assert.IsType<OkObjectResult>(okResult.Result);
+            var productDtoValue = (IEnumerable<ProductDtoWithAvgRating>)productDTOs.Value;
+
+            Assert.Equal(products.Count, productDtoValue.Count());
+
+        }
     }
 
     public class RepositoryTests
@@ -574,8 +663,9 @@ namespace TestProductReview
         {
             return new List<Product>
             {
-                new Product { ProductId = 1, Name = "Product 1", CategoryId = 1 },
-                new Product { ProductId = 2, Name = "Product 2", CategoryId = 2 }
+                new Product { ProductId = 1, Name = "Product 1", CategoryId = 1, Category = new Category { CategoryId = 1, Name = "Category 1" }, Description = "Description 1", Reviews = GetTestReviews(), SellerProducts = GetTestSellerProducts(), Images = GetTestProductImage() },
+                new Product { ProductId = 2, Name = "Product 2", CategoryId = 1, Category = new Category { CategoryId = 1, Name = "Category 1" }, Description = "Description 2", Reviews = GetTestReviews(), SellerProducts = GetTestSellerProducts(), Images = GetTestProductImage() },
+                new Product { ProductId = 3, Name = "Product 3", CategoryId = 2, Category = new Category { CategoryId = 2, Name = "Category 2" }, Description = "Description 3", Reviews = GetTestReviews(), SellerProducts = GetTestSellerProducts(), Images = GetTestProductImage() }
             }.AsQueryable();
         }
 
@@ -595,6 +685,36 @@ namespace TestProductReview
                 new Review { ReviewId = 1, Rating = 4, Comment = "Good", ProductId = 123, UserId = 1, IsDeleted = false },
                 new Review { ReviewId = 2, Rating = 5, Comment = "Nice", ProductId = 123, UserId = 2, IsDeleted = true },
                 new Review { ReviewId = 3, Rating = 3, Comment = "Avrage", ProductId = 456, UserId = 2, IsDeleted = false }
+            };
+        }
+
+        public static List<Seller> GetTestSeller()
+        {
+            return new List<Seller>
+            {
+                new Seller { SellerId = 1, Name = "Seller 1" },
+                new Seller { SellerId = 2, Name = "Seller 2" },
+                new Seller { SellerId = 3, Name = "Seller 3" }
+            };
+        }
+
+        public static List<SellerProduct> GetTestSellerProducts()
+        {
+            return new List<SellerProduct>
+            {
+                new SellerProduct { SellerProductId = 1, SellerId = 1, ProductId = 1, Price = 100 },
+                new SellerProduct { SellerProductId = 2, SellerId = 2, ProductId = 1, Price = 200 },
+                new SellerProduct { SellerProductId = 3, SellerId = 3, ProductId = 2, Price = 300 }
+            };
+        }
+
+        public static List<ProductImage> GetTestProductImage()
+        {
+            return new List<ProductImage>
+            {
+                new ProductImage { ImageId = 1, Url = "test1.image", ProductId = 1 },
+                new ProductImage { ImageId = 2, Url = "test2.image", ProductId = 1 },
+                new ProductImage { ImageId = 3, Url = "test3.image", ProductId = 2 }
             };
         }
     }
