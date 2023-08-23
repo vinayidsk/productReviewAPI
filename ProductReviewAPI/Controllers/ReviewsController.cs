@@ -61,7 +61,6 @@ namespace ProductReviewAPI.Controllers
             return NoContent();
         }
 
-        //TODO:  Instead of Delete from db add isDeleted flag and change it to true
         [HttpDelete("{reviewId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme, Roles = "0")]
         public async Task<IActionResult> DeleteReview(int reviewId)

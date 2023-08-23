@@ -222,8 +222,71 @@ namespace TestProductReview
             var returnedCategories = Assert.IsAssignableFrom<IEnumerable<Category>>(okResult.Value);
             Assert.Equal(categories.Count(), returnedCategories.Count());
         }
-        
-        // TODO: Needs to add Other test methods for CategoriesController
+
+        [Fact]
+        public async Task GetCategoryById_ReturnsCategory()
+        {
+            var mockCategoryRepository = new Mock<IDataRepository<Category>>();
+            var mockLogger = new Mock<ILogger<CategoriesController>>();
+            var categoryId = 2;
+
+            var controller = new CategoriesController(mockCategoryRepository.Object, mockLogger.Object);
+
+            var category = TestData.GetTestCategories().Where(c => c.CategoryId == categoryId).FirstOrDefault();
+
+            mockCategoryRepository.Setup(repo => repo.GetByIdAsync(categoryId))
+                .ReturnsAsync(category);
+
+            var result = await controller.GetCategoryById(categoryId);
+
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var returnedCategory = Assert.IsAssignableFrom<Category>(okResult.Value);
+            Assert.Equal(categoryId, returnedCategory.CategoryId);
+        }
+
+        [Fact]
+        public async Task AddCategory_AddsCategoryToDatabase()
+        {
+            var dbContextMock = new Mock<ReviewDBContext>();
+            var mockCategoryRepository = new Mock<IDataRepository<Category>>();
+            var mockLogger = new Mock<ILogger<CategoriesController>>();
+
+            var controller = new CategoriesController(mockCategoryRepository.Object, mockLogger.Object);
+
+            var categoryToAdd = new Category
+            {
+                CategoryId = 3,
+                Name = "Electronics"
+            };
+
+            var result = controller.AddCategory(categoryToAdd);
+            
+            mockCategoryRepository.Verify(repo => repo.AddAsync(categoryToAdd), Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateCategory_UpdatesExistingCategory()
+        {
+            var mockCategoryRepository = new Mock<IDataRepository<Category>>();
+            var mockLogger = new Mock<ILogger<CategoriesController>>();
+
+            var controller = new CategoriesController(mockCategoryRepository.Object, mockLogger.Object);
+
+            var categoryId = 2;
+            var updatedCategory = new Category
+            {
+                CategoryId = categoryId,
+                Name = "Updated Electronics"
+            };
+
+            mockCategoryRepository.Setup(repo => repo.GetByIdAsync(categoryId))
+                .ReturnsAsync(new Category { CategoryId = categoryId, Name = "Electronics" });
+
+            var result = await controller.UpdateCategory(categoryId, updatedCategory);
+
+            mockCategoryRepository.Verify(repo => repo.UpdateAsync(updatedCategory), Times.Once);
+            Assert.IsType<NoContentResult>(result);
+        }
     }
 
     public class ReviewsControllerTests
@@ -252,58 +315,175 @@ namespace TestProductReview
             Assert.Equal(allReviews.Count, returnedReviews.Count);
         }
 
-        //[Fact]
-        //public async Task GetReviewsForProduct_ReturnsReviewsForProduct()
-        //{
-        //    // Arrange
-        //    var mockRepo = new Mock<IDataRepository<Review>>();
-        //    var mockLogger = new Mock<ILogger<ReviewsController>>();
-        //    var productId = 123;
+        [Fact]
+        public async Task GetReviewById_ReturnsOkResultWithReview()
+        {
+            var mockReviewRepository = new Mock<IDataRepository<Review>>();
+            var mockLogger = new Mock<ILogger<ReviewsController>>();
 
-        //    var reviewsForProduct = TestData.GetTestReviews()
-        //        .Where(r => r.ProductId == productId)
-        //        .ToList();
+            var controller = new ReviewsController(mockReviewRepository.Object, mockLogger.Object);
 
-        //    mockRepo.Setup(repo => repo.GetAllAsync(r => r.ProductId == productId))
-        //        .ReturnsAsync(reviewsForProduct);
+            var reviewId = 1;
+            var existingReview = new Review
+            {
+                ReviewId = reviewId,
+                Rating = 4,
+            };
 
-        //    var controller = new ReviewsController(mockRepo.Object, mockLogger.Object);
+            mockReviewRepository.Setup(repo => repo.GetByIdAsync(reviewId))
+                .ReturnsAsync(existingReview);
 
-        //    // Act
-        //    var result = await controller.GetReviewsForProduct(productId);
+            var result = await controller.GetReviewById(reviewId);
 
-        //    // Assert
-        //    var okResult = Assert.IsType<OkObjectResult>(result);
-        //    var returnedReviews = Assert.IsType<List<Review>>(okResult.Value);
-        //    Assert.Equal(reviewsForProduct.Count, returnedReviews.Count);
-        //}
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var returnedReview = Assert.IsType<Review>(okResult.Value);
+            Assert.Equal(reviewId, returnedReview.ReviewId);
+        }
 
-        //[Fact]
-        //public async Task GetAverageRatingForProduct_ReturnsAverageRating()
-        //{
-        //    // Arrange
-        //    var mockRepo = new Mock<IDataRepository<Review>>();
-        //    var mockLogger = new Mock<ILogger<ReviewsController>>();
-        //    var productId = 123;
+        [Fact]
+        public async Task GetReviewById_ReturnsNotFoundResult()
+        {
+            var mockReviewRepository = new Mock<IDataRepository<Review>>();
+            var mockLogger = new Mock<ILogger<ReviewsController>>();
 
-        //    var reviewsForProduct = TestData.GetTestReviews()
-        //        .Where(r => r.ProductId == productId)
-        //        .ToList();
+            var controller = new ReviewsController(mockReviewRepository.Object, mockLogger.Object);
 
-        //    mockRepo.Setup(repo => repo.GetAllAsync(r => r.ProductId == productId))
-        //        .ReturnsAsync(reviewsForProduct);
+            var reviewId = 404;
 
-        //    var controller = new ReviewsController(mockRepo.Object, mockLogger.Object);
+            mockReviewRepository.Setup(repo => repo.GetByIdAsync(reviewId))
+                .ReturnsAsync((Review)null);
 
-        //    // Act
-        //    var result = await controller.GetAverageRatingForProduct(productId);
+            var result = await controller.GetReviewById(reviewId);
 
-        //    // Assert
-        //    var okResult = Assert.IsType<OkObjectResult>(result);
-        //    var averageRating = Assert.IsType<double>(okResult.Value);
-        //    Assert.Equal(reviewsForProduct.Average(r => r.Rating), averageRating);
-        //}
+            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+            Assert.Equal("Review not found or deleted", notFoundResult.Value);
+        }
 
+        [Fact]
+        public async Task UpdateReview_ReturnsNoContentResult()
+        {
+            var mockReviewRepository = new Mock<IDataRepository<Review>>();
+            var mockLogger = new Mock<ILogger<ReviewsController>>();
+
+            var controller = new ReviewsController(mockReviewRepository.Object, mockLogger.Object);
+
+            var reviewId = 1;
+            var existingReview = new Review
+            {
+                ReviewId = reviewId,
+                Rating = 4,
+                Comment = "Good",
+                ProductId = 123,
+                UserId = 1,
+                IsDeleted = false
+            };
+
+            var updatedReview = new Review
+            {
+                ReviewId = reviewId,
+                Rating = 5,
+                Comment = "Updated comment",
+                ProductId = 123,
+                UserId = 1,
+                IsDeleted = false
+            };
+
+            mockReviewRepository.Setup(repo => repo.GetByIdAsync(reviewId))
+                .ReturnsAsync(existingReview);
+
+            var result = await controller.UpdateReview(reviewId, updatedReview);
+
+            var noContentResult = Assert.IsType<NoContentResult>(result);
+            Assert.Equal(204, noContentResult.StatusCode);
+            Assert.Equal(5, existingReview.Rating);
+            Assert.Equal("Updated comment", existingReview.Comment);
+        }
+
+        [Fact]
+        public async Task UpdateReview_ReturnsNotFoundResult()
+        {
+            var mockReviewRepository = new Mock<IDataRepository<Review>>();
+            var mockLogger = new Mock<ILogger<ReviewsController>>();
+
+            var controller = new ReviewsController(mockReviewRepository.Object, mockLogger.Object);
+
+            var reviewId = 1;
+            
+            var updatedReview = new Review
+            {
+                ReviewId = reviewId,
+                Rating = 5,
+                Comment = "Updated comment",
+                ProductId = 123,
+                UserId = 1,
+                IsDeleted = false
+            };
+
+            mockReviewRepository.Setup(repo => repo.GetByIdAsync(reviewId))
+                .ReturnsAsync((Review)null);
+
+            var result = await controller.UpdateReview(reviewId, updatedReview);
+
+            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+            Assert.Equal("Review not found or deleted", notFoundResult.Value);
+        }
+
+        [Fact]
+        public async Task DeleteReview_ReturnsNoContentResult()
+        {
+            var mockReviewRepository = new Mock<IDataRepository<Review>>();
+            var mockLogger = new Mock<ILogger<ReviewsController>>();
+
+            var controller = new ReviewsController(mockReviewRepository.Object, mockLogger.Object);
+
+            var reviewId = 1;
+            var existingReview = new Review
+            {
+                ReviewId = reviewId,
+                Rating = 4,
+                Comment = "Good",
+                ProductId = 123,
+                UserId = 1,
+                IsDeleted = false
+            };
+
+            mockReviewRepository.Setup(repo => repo.GetByIdAsync(reviewId))
+                .ReturnsAsync(existingReview);
+
+            var result = await controller.DeleteReview(reviewId);
+
+            var noContentResult = Assert.IsType<NoContentResult>(result);
+            Assert.Equal(204, noContentResult.StatusCode);
+            mockReviewRepository.Verify(repo => repo.DeleteAsync(existingReview), Times.Once);
+        }
+
+        [Fact]
+        public async Task DeleteReview_ReturnsNotFoundResult()
+        {
+            var mockReviewRepository = new Mock<IDataRepository<Review>>();
+            var mockLogger = new Mock<ILogger<ReviewsController>>();
+
+            var controller = new ReviewsController(mockReviewRepository.Object, mockLogger.Object);
+
+            var reviewId = 400;
+            var deletedReview = new Review
+            {
+                ReviewId = reviewId,
+                Rating = 4,
+                Comment = "Good",
+                ProductId = 123,
+                UserId = 1,
+                IsDeleted = true
+            };
+
+            mockReviewRepository.Setup(repo => repo.GetByIdAsync(reviewId))
+                .ReturnsAsync(deletedReview);
+
+            var result = await controller.DeleteReview(reviewId);
+
+            var notFoundResult = Assert.IsType<NotFoundObjectResult>(result);
+            Assert.Equal("Review not found or deleted", notFoundResult.Value);
+        }
         // TODO: Needs to add Other test methods for ReviewsController
     }
 
@@ -412,10 +592,9 @@ namespace TestProductReview
         {
             return new List<Review>
             {
-                new Review { ReviewId = 1, Rating = 4, ProductId = 123 },
-                new Review { ReviewId = 2, Rating = 5, ProductId = 123 },
-                new Review { ReviewId = 3, Rating = 3, ProductId = 456 }
-                // Add more test reviews as needed
+                new Review { ReviewId = 1, Rating = 4, Comment = "Good", ProductId = 123, UserId = 1, IsDeleted = false },
+                new Review { ReviewId = 2, Rating = 5, Comment = "Nice", ProductId = 123, UserId = 2, IsDeleted = true },
+                new Review { ReviewId = 3, Rating = 3, Comment = "Avrage", ProductId = 456, UserId = 2, IsDeleted = false }
             };
         }
     }
